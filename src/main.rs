@@ -1,8 +1,29 @@
 pub mod parsedllexports;
+use std::io::stdin;
 
 fn main() {
-    let exports = parsedllexports::parse_dll_exports("../rustdll/shitty.dll").unwrap();
-    println!("{:#?}", exports);
+
+    print!("Enter DLL Path: ");
+    let mut dll_path = String::new();
+    stdin().read_line(&mut dll_path).unwrap();
+
+    let t: Vec<&str> = dll_path.split("/").collect();
+    let dll_name = t.get(t.len() - 1).unwrap().to_string();
+    drop(t);
+
+    print!("Enter new crate directory: ");
+    let mut new_dir = String::new();
+    stdin().read_line(&mut new_dir).unwrap();
+
+    let t: Vec<&str> = new_dir.split("/").collect();
+    let crate_name = t.get(t.len() - 1).unwrap().to_string();
+    drop(t);
+
+    let exports = parsedllexports::parse_dll_exports(&dll_path).expect("Bad DLL");
+    let dependencies = vec!["dllproxymacros = \"0.1.0\""];
+
+    create_rust_lib_crate(new_dir, &crate_name, &dll_name, exports, Some(dependencies)).unwrap();
+
 }
 
 use std::fs::{self, File};
@@ -13,7 +34,7 @@ pub fn create_rust_lib_crate<P: AsRef<Path>>(
     dir_path: P, 
     crate_name: &str,
     dll_name: &str, 
-    exports: Vec<&str>,
+    exports: Vec<String>,
     dependencies: Option<Vec<&str>>
 ) -> io::Result<PathBuf> {
     let crate_dir = dir_path.as_ref().join(crate_name);
