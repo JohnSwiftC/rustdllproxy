@@ -11,7 +11,8 @@ use std::path::{Path, PathBuf};
 
 pub fn create_rust_lib_crate<P: AsRef<Path>>(
     dir_path: P, 
-    crate_name: &str, 
+    crate_name: &str,
+    dll_name: &str, 
     exports: Vec<&str>,
     dependencies: Option<Vec<&str>>
 ) -> io::Result<PathBuf> {
@@ -69,7 +70,7 @@ pub fn create_rust_lib_crate<P: AsRef<Path>>(
     
     let mut i = 1;
     for export in exports {
-        writeln!(def_file, "    {} @{}", export, i)?;
+        writeln!(def_file, "    {} = {}.{} @{}", export, &dll_name[0..dll_name.len() - 4], export, i)?;
         i += 1;
     }
     
