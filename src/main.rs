@@ -1,28 +1,33 @@
 pub mod parsedllexports;
-use std::io::stdin;
+use std::io::{stdin, stdout};
 
 fn main() {
 
     print!("Enter DLL Path: ");
+    stdout().flush().unwrap();
     let mut dll_path = String::new();
     stdin().read_line(&mut dll_path).unwrap();
+    let dll_path = dll_path.trim();
 
-    let t: Vec<&str> = dll_path.split("/").collect();
-    let dll_name = t.get(t.len() - 1).unwrap().to_string();
-    drop(t);
+    let path = Path::new(dll_path);
+    let dll_name = path.file_name().unwrap().to_string_lossy().to_string();
 
     print!("Enter new crate directory: ");
+    stdout().flush().unwrap();
     let mut new_dir = String::new();
     stdin().read_line(&mut new_dir).unwrap();
+    let new_dir = new_dir.trim();
 
-    let t: Vec<&str> = new_dir.split("/").collect();
-    let crate_name = t.get(t.len() - 1).unwrap().to_string();
-    drop(t);
+    print!("Enter new crate name: ");
+    stdout().flush().unwrap();
+    let mut new_name = String::new();
+    stdin().read_line(&mut new_name).unwrap();
+    let new_name = new_name.trim();
 
     let exports = parsedllexports::parse_dll_exports(&dll_path).expect("Bad DLL");
     let dependencies = vec!["dllproxymacros = \"0.1.0\""];
 
-    create_rust_lib_crate(new_dir, &crate_name, &dll_name, exports, Some(dependencies)).unwrap();
+    create_rust_lib_crate(new_dir, &new_name, &dll_name, exports, Some(dependencies)).unwrap();
 
 }
 
