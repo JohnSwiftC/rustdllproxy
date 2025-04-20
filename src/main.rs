@@ -67,8 +67,10 @@ pub fn create_rust_lib_crate<P: AsRef<Path>>(
     writeln!(def_file, "LIBRARY {}", crate_name)?;
     writeln!(def_file, "EXPORTS")?;
     
+    let mut i = 1;
     for export in exports {
-        writeln!(def_file, "    {}", export)?;
+        writeln!(def_file, "    {} @{}", export, i)?;
+        i += 1;
     }
     
     Ok(crate_dir)
