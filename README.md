@@ -1,5 +1,41 @@
 # rustdllproxy
 
-A simple crate that generates Rust cdylib projects for the intention of proxying DLLs.
+A crate utility to easily generate and develop proxy DLLs.
 
-Development is not done yet, but will provide a full macro system for pre-hooking, post-hooking, and full-hooking, as well as automatically generating exports from the proxied DLL.
+# Creating a New Library
+
+To create a new library, navigate to a good directly close to the target DLL, and then run the `rustdllproxy` command in your terminal. Follow the prompts for the DLL path, new crate directory, and the new name of your crate.
+
+> IMPORTANT! Select the location of your crate wisely. It cannot be easily moved after creation. If you do, please update the path of the .def file in the linker options.
+
+Now the library crate should have been created.
+
+# Hooking Into Functions
+
+Now that you are in the new library, you should see some boilerplate generated in `lib.rs`. This is required for forwarding exports from the old DLL, so keep it untouched unless it is hooked.
+
+In order to hook a function, you must replace the `no_mangle` macro with any of the following:
+
+- prehook
+- posthook
+- fullhook
+
+in the format `#[prehook("dll_being_hooked", "function_name")]`.
+
+> Please also note, that the name of the function should be untouched. If it is changed, the linker will have problems when generating exports.
+
+Once you have used the macro, you must fill out the signature of the function. This is a current limitation that will be fixed soon, but for hooking currently you must know the function's signature. This can be determined with a multitude of different tools and techniques. If you are using this tool, I assume that you are already using some sort of disassembler or decompiler to look at said DLL.
+
+Finally, you must visit the .def file and remove the forwarding behavior such that just the function name being exported remains (ex.)
+
+`do_multi_add = yourdll_.do_multi_add @1` turns into `do_multi_add @1`, assuming you are hooking do_multi_add.
+
+Finally, run `cargo build --release` to build your DLL.
+
+> It is important that you change the .def file before compilation. If you compile before changing the .def file, it will obviously not be hooked. If you change the .def file and try again, it will still not be hooked. Rather, cargo will return the cached build. This behavior is due to cargo not searching for differences in the .def file. Save yourself the headache and do it right the first time.
+
+# Using the DLL
+
+The new DLL generated must be placed in the same directory as the target DLL. Along with that, the target DLL's name must be appended with an _. For example, `dlltest.dll` becomes `dlltest_.dll`, and you name the proxy DLL to `dlltest.dll`. This is to take advantage of the DLL search order.
+
+There are obviously cases where the approach is slightly different, I assume you know what you are doing for your specific case.
