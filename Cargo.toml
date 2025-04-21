@@ -2,5 +2,9 @@
 name = "rustdllproxy"
 version = "0.1.0"
 edition = "2024"
+description = "Crate to ease the development of proxy DLLs in Rust"
+categories = ["command-line-utilities", "security"]
+repository = "https://github.com/JohnSwiftC/rustdllproxy"
+license = "MIT OR Apache-2.0"
 
 [dependencies]
