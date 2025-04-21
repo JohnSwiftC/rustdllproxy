@@ -82,14 +82,9 @@ pub fn create_rust_lib_crate<P: AsRef<Path>>(
     
     writeln!(config_file, "[build]")?;
     
-    #[cfg(target_os = "windows")]
-    {
-        writeln!(config_file, "rustflags = [\"-C\", \"link-args=/DEF:{}.def\"]", crate_name)?;
-    }
-    
     // Create .def file
     let def_path = crate_dir.join(format!("{}.def", crate_name));
-    let mut def_file = File::create(def_path)?;
+    let mut def_file = File::create(&def_path)?;
     
     writeln!(def_file, "LIBRARY {}", crate_name)?;
     writeln!(def_file, "EXPORTS")?;
@@ -98,6 +93,13 @@ pub fn create_rust_lib_crate<P: AsRef<Path>>(
     for export in exports {
         writeln!(def_file, "    {} = {}.{} @{}", export, &dll_name[0..dll_name.len() - 4], export, i)?;
         i += 1;
+    }
+
+    let full_def_path = fs::canonicalize(&def_path).unwrap().to_string_lossy().to_string();
+
+    #[cfg(target_os = "windows")]
+    {
+        writeln!(config_file, "rustflags = [\"-C\", \"link-args=/DEF:{}\"]", full_def_path)?;
     }
     
     Ok(crate_dir)
