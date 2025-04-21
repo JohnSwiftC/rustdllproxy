@@ -2,6 +2,8 @@
 
 A crate utility to easily generate and develop proxy DLLs.
 
+There is a video tutorial [here](https://youtu.be/f7WVPpsBXNA).
+
 # Creating a New Library
 
 To create a new library, navigate to a good directly close to the target DLL, and then run the `rustdllproxy` command in your terminal. Follow the prompts for the DLL path, new crate directory, and the new name of your crate.
@@ -33,6 +35,18 @@ Finally, you must visit the .def file and remove the forwarding behavior such th
 Finally, run `cargo build --release` to build your DLL.
 
 > It is important that you change the .def file before compilation. If you compile before changing the .def file, it will obviously not be hooked. If you change the .def file and try again, it will still not be hooked. Rather, cargo will return the cached build. This behavior is due to cargo not searching for differences in the .def file. Save yourself the headache and do it right the first time.
+
+## prehook
+
+When prehooking you can modify the values of the input arguments. When you create the function signature, you may define arguments as mutable as you normally would in Rust, and changing these arguments works as expected.
+
+## posthook
+
+When writing a posthook, if your function is returning something, you can modify the value with the magic `ret` variable. Changing the value of ret will change what the function returns.
+
+## fullhook
+
+A fullhook is more advanced but gives you a deeper level of control over the hook. A fullhook relies on you to call the original function manually using the magic `func` function. This function must have the original arguments passed to it as well. If your function has a return value, it must also be stored and then returned manually at the end of your hook.
 
 # Using the DLL
 
