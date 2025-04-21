@@ -95,7 +95,8 @@ pub fn create_rust_lib_crate<P: AsRef<Path>>(
         i += 1;
     }
 
-    let full_def_path = fs::canonicalize(&def_path).unwrap().to_string_lossy().to_string();
+    let full_def_path = fs::canonicalize(&def_path)?.to_string_lossy().to_string();
+    let full_def_path = full_def_path.strip_prefix(r"\\?\").unwrap_or(&full_def_path); // Sometimes the extended path marker will not be present, so remove it
 
     #[cfg(target_os = "windows")]
     {
