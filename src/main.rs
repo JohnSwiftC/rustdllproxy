@@ -25,7 +25,7 @@ fn main() {
     let new_name = new_name.trim();
 
     let exports = parsedllexports::parse_dll_exports(&dll_path).expect("Bad DLL");
-    let dependencies = vec!["dllproxymacros = \"0.1.0\""];
+    let dependencies = vec!["dllproxymacros = \"0.1.0\"", "winapi = { version = \"0.3.9\", features = [\"libloaderapi\", \"minwindef\"] }"];
 
     create_rust_lib_crate(new_dir, &new_name, &dll_name, exports, Some(dependencies)).unwrap();
 
@@ -50,7 +50,11 @@ pub fn create_rust_lib_crate<P: AsRef<Path>>(
     fs::create_dir(&src_dir)?;
     
     let lib_path = src_dir.join("lib.rs");
-    File::create(lib_path)?;
+    let mut lib_file = File::create(lib_path)?;
+    
+    writeln!(lib_file, "use winapi::um::libloaderapi::{{GetProcAddress, LoadLibraryA}};")?;
+    writeln!(lib_file, "use std::ffi::CString;")?;
+    writeln!(lib_file, "use dllproxymacros::{{prehook, posthook, fullhook}};")?;
     
     let cargo_path = crate_dir.join("Cargo.toml");
     let mut cargo_file = File::create(cargo_path)?;
@@ -92,6 +96,9 @@ pub fn create_rust_lib_crate<P: AsRef<Path>>(
     let mut i = 1;
     for export in exports {
         writeln!(def_file, "    {} = {}.{} @{}", export, &dll_name[0..dll_name.len() - 4], export, i)?;
+
+        writeln!(lib_file, "#[no_mangle]")?;
+        writeln!(lib_file, "fn {}() {{}}", export)?;
         i += 1;
     }
 
