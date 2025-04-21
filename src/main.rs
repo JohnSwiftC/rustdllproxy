@@ -96,7 +96,7 @@ pub fn create_rust_lib_crate<P: AsRef<Path>>(
     
     let mut i = 1;
     for export in exports {
-        writeln!(def_file, "    {} = {}.{} @{}", export, &dll_name[0..dll_name.len() - 4], export, i)?;
+        writeln!(def_file, "    {} = {}_.{} @{}", export, &dll_name[0..dll_name.len() - 4], export, i)?;
 
         writeln!(lib_file, "#[no_mangle]")?;
         writeln!(lib_file, "fn {}() {{}}", export)?;
