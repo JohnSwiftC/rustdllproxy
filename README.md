@@ -2,7 +2,10 @@
 
 A crate utility to easily generate and develop proxy DLLs.
 
+Install with `cargo install rustdllproxy`.
+
 There is a video tutorial [here](https://youtu.be/f7WVPpsBXNA).
+
 
 # Creating a New Library
 
