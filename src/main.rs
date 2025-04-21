@@ -108,7 +108,7 @@ pub fn create_rust_lib_crate<P: AsRef<Path>>(
 
     #[cfg(target_os = "windows")]
     {
-        writeln!(config_file, "rustflags = [\"-C\", \"link-args=/DEF:{}\"]", full_def_path)?;
+        writeln!(config_file, "rustflags = [\"-C\", \"link-args=/DEF:{}\"]", full_def_path.replace("\\", "/"))?;
     }
     
     Ok(crate_dir)
