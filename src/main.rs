@@ -85,6 +85,7 @@ pub fn create_rust_lib_crate<P: AsRef<Path>>(
     let mut config_file = File::create(config_path)?;
     
     writeln!(config_file, "[build]")?;
+    writeln!(config_file, "target = \"x86_64-pc-windows-msvc\"")?;
     
     // Create .def file
     let def_path = crate_dir.join(format!("{}.def", crate_name));
