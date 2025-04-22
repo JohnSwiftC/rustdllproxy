@@ -42,23 +42,36 @@ pub fn create_rust_lib_crate<P: AsRef<Path>>(
     exports: Vec<String>,
     dependencies: Option<Vec<&str>>
 ) -> io::Result<PathBuf> {
+
+    // Create src directory
     let crate_dir = dir_path.as_ref().join(crate_name);
-    
     fs::create_dir_all(&crate_dir)?;
     
+    // Create src directory
     let src_dir = crate_dir.join("src");
     fs::create_dir(&src_dir)?;
     
+    // Create lib.rs
     let lib_path = src_dir.join("lib.rs");
     let mut lib_file = File::create(lib_path)?;
     
-    writeln!(lib_file, "use winapi::um::libloaderapi::{{GetProcAddress, LoadLibraryA}};")?;
-    writeln!(lib_file, "use std::ffi::CString;")?;
-    writeln!(lib_file, "use dllproxymacros::{{prehook, posthook, fullhook}};")?;
+    // Create .def file
+    let def_path = crate_dir.join(format!("{}.def", crate_name));
+    let mut def_file = File::create(&def_path)?;
     
+    // Create cargo.toml
     let cargo_path = crate_dir.join("Cargo.toml");
     let mut cargo_file = File::create(cargo_path)?;
-    
+
+    // Create .cargo directory
+    let cargo_config_dir = crate_dir.join(".cargo");
+    fs::create_dir_all(&cargo_config_dir)?;
+
+    // Create config.toml
+    let config_path = cargo_config_dir.join("config.toml");
+    let mut config_file = File::create(config_path)?;
+
+    // Fill out cargo.toml
     writeln!(cargo_file, "[package]")?;
     writeln!(cargo_file, "name = \"{}\"", crate_name)?;
     writeln!(cargo_file, "version = \"0.1.0\"")?;
@@ -77,22 +90,16 @@ pub fn create_rust_lib_crate<P: AsRef<Path>>(
         }
     }
     
-    // Create .cargo directory and config file for linker
-    let cargo_config_dir = crate_dir.join(".cargo");
-    fs::create_dir_all(&cargo_config_dir)?;
-    
-    let config_path = cargo_config_dir.join("config.toml");
-    let mut config_file = File::create(config_path)?;
-    
+    // Fill out config.toml and lib.rs
     writeln!(config_file, "[build]")?;
     writeln!(config_file, "target = \"x86_64-pc-windows-msvc\"")?;
     
-    // Create .def file
-    let def_path = crate_dir.join(format!("{}.def", crate_name));
-    let mut def_file = File::create(&def_path)?;
-    
     writeln!(def_file, "LIBRARY {}", crate_name)?;
     writeln!(def_file, "EXPORTS")?;
+
+    writeln!(lib_file, "use winapi::um::libloaderapi::{{GetProcAddress, LoadLibraryA}};")?;
+    writeln!(lib_file, "use std::ffi::CString;")?;
+    writeln!(lib_file, "use dllproxymacros::{{prehook, posthook, fullhook}};")?;
     
     let mut i = 1;
     for export in exports {
