@@ -1,33 +1,44 @@
 pub mod parsedllexports;
 use std::io::{stdin, stdout};
+use std::error::Error;
 
-fn main() {
+fn main() -> Result<(), Box<dyn Error>> {
 
-    print!("Enter DLL Path: ");
-    stdout().flush().unwrap();
-    let mut dll_path = String::new();
-    stdin().read_line(&mut dll_path).unwrap();
-    let dll_path = dll_path.trim();
-
-    let path = Path::new(dll_path);
-    let dll_name = path.file_name().unwrap().to_string_lossy().to_string();
-
-    print!("Enter new crate directory: ");
-    stdout().flush().unwrap();
-    let mut new_dir = String::new();
-    stdin().read_line(&mut new_dir).unwrap();
-    let new_dir = new_dir.trim();
-
-    print!("Enter new crate name: ");
-    stdout().flush().unwrap();
-    let mut new_name = String::new();
-    stdin().read_line(&mut new_name).unwrap();
-    let new_name = new_name.trim();
+    let (dll_path, dll_name, new_dir, new_name) = handle_user_input()?;
 
     let exports = parsedllexports::parse_dll_exports(&dll_path).expect("Bad DLL");
     let dependencies = vec!["dllproxymacros = \"0.1.0\"", "winapi = { version = \"0.3.9\", features = [\"libloaderapi\", \"minwindef\"] }"];
 
-    create_rust_lib_crate(new_dir, &new_name, &dll_name, exports, Some(dependencies)).unwrap();
+    create_rust_lib_crate(new_dir, &new_name, &dll_name, exports, Some(dependencies))?;
+
+    Ok(())
+
+}
+
+fn handle_user_input() -> Result<(String, String, String, String), Box<dyn Error>> {
+
+    print!("Enter DLL Path: ");
+    stdout().flush()?;
+    let mut dll_path = String::new();
+    stdin().read_line(&mut dll_path)?;
+    let dll_path = dll_path.trim().to_owned();
+
+    let path = Path::new(&dll_path);
+    let dll_name = path.file_name().expect("Bad File").to_string_lossy().to_string();
+
+    print!("Enter new crate directory: ");
+    stdout().flush()?;
+    let mut new_dir = String::new();
+    stdin().read_line(&mut new_dir)?;
+    let new_dir = new_dir.trim().to_owned();
+
+    print!("Enter new crate name: ");
+    stdout().flush()?;
+    let mut new_name = String::new();
+    stdin().read_line(&mut new_name)?;
+    let new_name = new_name.trim().to_owned();
+
+    Ok((dll_path, dll_name, new_dir, new_name))
 
 }
 
