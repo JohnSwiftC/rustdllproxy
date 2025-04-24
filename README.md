@@ -9,7 +9,7 @@ There is a video tutorial [here](https://youtu.be/f7WVPpsBXNA).
 
 # Creating a New Library
 
-To create a new library, navigate to a good directly close to the target DLL, and then run the `rustdllproxy` command in your terminal. Follow the prompts for the DLL path, new crate directory, and the new name of your crate.
+To create a new library, navigate to a good directory close to the target DLL, and then run the `rustdllproxy` command in your terminal. Follow the prompts for the DLL path, new crate directory, and the new name of your crate.
 
 > IMPORTANT! Select the location of your crate wisely. It cannot be easily moved after creation. If you do, please update the path of the .def file in the linker options.
 
