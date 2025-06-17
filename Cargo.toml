@@ -1,6 +1,6 @@
 [package]
 name = "rustdllproxy"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2024"
 description = "Crate to ease the development of proxy DLLs in Rust"
 categories = ["command-line-utilities", "security"]
