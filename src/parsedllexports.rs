@@ -7,6 +7,7 @@ pub enum DllParserError {
     IoError(io::Error),
     InvalidPeFormat,
     UnsupportedFormat,
+    DotNetAssembly,
 }
 
 impl From<io::Error> for DllParserError {
@@ -51,6 +52,34 @@ pub fn parse_dll_exports<P: AsRef<Path>>(dll_path: P) -> Result<Vec<String>, Dll
     if (is_64bit && optional_header_magic != 0x20B) || 
        (!is_64bit && optional_header_magic != 0x10B) {
         return Err(DllParserError::InvalidPeFormat);
+    }
+    
+    // Who woulda thought to check for this? not me apparently
+    let cli_header_rva_offset = if is_64bit {
+        optional_header_offset + 232 // COM+ descriptor at offset 232 for PE32+
+    } else {
+        optional_header_offset + 208 // COM+ descriptor at offset 208 for PE32
+    };
+    
+    if buffer.len() >= cli_header_rva_offset + 8 {
+        let cli_header_rva = u32::from_le_bytes([
+            buffer[cli_header_rva_offset],
+            buffer[cli_header_rva_offset + 1],
+            buffer[cli_header_rva_offset + 2],
+            buffer[cli_header_rva_offset + 3],
+        ]);
+        
+        let cli_header_size = u32::from_le_bytes([
+            buffer[cli_header_rva_offset + 4],
+            buffer[cli_header_rva_offset + 5],
+            buffer[cli_header_rva_offset + 6],
+            buffer[cli_header_rva_offset + 7],
+        ]);
+        
+        // If CLI header is present, this is a .NET assembly
+        if cli_header_rva != 0 && cli_header_size != 0 {
+            return Err(DllParserError::DotNetAssembly);
+        }
     }
     
     let export_dir_rva_offset = if is_64bit { 
