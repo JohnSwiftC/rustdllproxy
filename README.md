@@ -6,6 +6,9 @@ Install with `cargo install rustdllproxy`.
 
 There is a video tutorial [here](https://youtu.be/f7WVPpsBXNA).
 
+# Compatability
+
+This crate currently only supports the normal DLL PE format. As such, .NET DLLs are not supported.
 
 # Creating a New Library
 
