@@ -113,14 +113,14 @@ pub fn create_rust_lib_crate<P: AsRef<Path>>(
 }
 
 #[derive(Parser)]
-#[command(version = "2.0.0", about = "a simple command-line utility for generating proxy DLLs in Rust", long_about = None)]
+#[command(version = "2.0.0", about = "A simple command-line utility for generating proxy DLLs in Rust", long_about = None)]
 struct CLI {
-    #[arg(short = 'p', long = "path", value_name = "FILE", help = "path to original dll")]
+    #[arg(short = 'p', long = "path", value_name = "FILE", help = "Path to original dll")]
     dll_path: PathBuf,
 
-    #[arg(short = 'o', long = "output", help = "directory to create new crate in, defaults to the running dir")]
+    #[arg(short = 'o', long = "output", help = "Directory to create new crate in, defaults to the running dir")]
     new_dir: Option<String>,
 
-    #[arg(short = 'n', long = "name", help = "name of the new crate")]
+    #[arg(short = 'n', long = "name", help = "Name of the new crate")]
     new_name: String,
 }
