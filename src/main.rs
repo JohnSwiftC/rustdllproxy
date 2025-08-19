@@ -17,7 +17,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let new_dir = cli.new_dir.unwrap_or(".".to_owned());
     let new_name = cli.new_name;
 
-    let dependencies = vec!["dllproxymacros = \"0.1.0\"", "winapi = { version = \"0.3.9\", features = [\"libloaderapi\", \"minwindef\"] }"];
+    let dependencies = vec!["dllproxymacros = \"0.2.0\"", "winapi = { version = \"0.3.9\", features = [\"libloaderapi\", \"minwindef\"] }"];
 
     create_rust_lib_crate(new_dir, &new_name, dlls_and_exports, Some(dependencies))?;
 
