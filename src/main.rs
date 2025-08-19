@@ -1,22 +1,25 @@
 pub mod parsedllexports;
 use std::error::Error;
+use std::collections::HashMap;
 
 use clap::{Parser};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let cli = CLI::parse();
+    let mut dlls_and_exports = HashMap::new();
 
-    let dll_name = cli.dll_path.file_name().expect("No dll name specified in path").to_str().expect("dll path is using an illegal encoding");
+    for dll_path in cli.dll_paths {
+        let exports = parsedllexports::parse_dll_exports(&dll_path).expect("Bad DLL");
+        let dll_name = dll_path.file_name().expect("Dll name not specified in file path");
+        dlls_and_exports.insert(dll_name.to_str().expect("Invalid path encoding").to_owned(), exports);
+    }
+    
     let new_dir = cli.new_dir.unwrap_or(".".to_owned());
     let new_name = cli.new_name;
-    let dll_path = cli.dll_path.to_owned();
 
-    // Need dll_path, dll_name, new_dir, new_name
-
-    let exports = parsedllexports::parse_dll_exports(&dll_path).expect("Bad DLL");
     let dependencies = vec!["dllproxymacros = \"0.1.0\"", "winapi = { version = \"0.3.9\", features = [\"libloaderapi\", \"minwindef\"] }"];
 
-    create_rust_lib_crate(new_dir, &new_name, dll_name, exports, Some(dependencies))?;
+    create_rust_lib_crate(new_dir, &new_name, dlls_and_exports, Some(dependencies))?;
 
     Ok(())
 
@@ -29,8 +32,7 @@ use std::path::{Path, PathBuf};
 pub fn create_rust_lib_crate<P: AsRef<Path>>(
     dir_path: P, 
     crate_name: &str,
-    dll_name: &str, 
-    exports: Vec<String>,
+    dlls_and_exports: HashMap<String, Vec<String>>,
     dependencies: Option<Vec<&str>>
 ) -> io::Result<PathBuf> {
 
@@ -92,13 +94,16 @@ pub fn create_rust_lib_crate<P: AsRef<Path>>(
     writeln!(lib_file, "use std::ffi::CString;")?;
     writeln!(lib_file, "use dllproxymacros::{{prehook, posthook, fullhook}};")?;
     
-    let mut i = 1;
-    for export in exports {
-        writeln!(def_file, "    {} = {}_.{} @{}", export, &dll_name[0..dll_name.len() - 4], export, i)?;
+    for (dll_name, exports) in dlls_and_exports {
+        let mut i = 1;
 
-        writeln!(lib_file, "#[no_mangle]")?;
-        writeln!(lib_file, "fn {}() {{}}", export)?;
-        i += 1;
+        for export in exports {
+            writeln!(def_file, "    {} = {}_.{} @{}", export, &dll_name[0..dll_name.len() - 4], export, i)?;
+
+            writeln!(lib_file, "#[no_mangle] //{}", dll_name)?;
+            writeln!(lib_file, "fn {}() {{}}", export)?;
+            i += 1;
+        }
     }
 
     let full_def_path = fs::canonicalize(&def_path)?.to_string_lossy().to_string();
@@ -115,8 +120,8 @@ pub fn create_rust_lib_crate<P: AsRef<Path>>(
 #[derive(Parser)]
 #[command(version = "2.0.0", about = "A simple command-line utility for generating proxy DLLs in Rust", long_about = None)]
 struct CLI {
-    #[arg(short = 'p', long = "path", value_name = "FILE", help = "Path to original dll")]
-    dll_path: PathBuf,
+    #[arg(short = 'p', long = "path", value_name = "FILE", help = "Path(s) to original dll(s)")]
+    dll_paths: Vec<PathBuf>,
 
     #[arg(short = 'o', long = "output", help = "Directory to create new crate in, defaults to the running dir")]
     new_dir: Option<String>,
