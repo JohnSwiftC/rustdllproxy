@@ -94,8 +94,8 @@ pub fn create_rust_lib_crate<P: AsRef<Path>>(
     writeln!(lib_file, "use std::ffi::CString;")?;
     writeln!(lib_file, "use dllproxymacros::{{prehook, posthook, fullhook}};")?;
     
+    let mut i = 1;
     for (dll_name, exports) in dlls_and_exports {
-        let mut i = 1;
 
         for export in exports {
             writeln!(def_file, "    {} = {}.{} @{}", export, &dll_name[0..dll_name.len() - 4], export, i)?;
