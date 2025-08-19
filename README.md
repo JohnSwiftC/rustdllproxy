@@ -1,61 +1,134 @@
 # rustdllproxy
 
+  
+
 A crate utility to easily generate and develop proxy DLLs.
+
+  
 
 Install with `cargo install rustdllproxy`.
 
+  
+
 There is a video tutorial [here](https://youtu.be/f7WVPpsBXNA).
+
+  
+
+> This video is now outdated. The process of writing functions remains the same, however the crate creation process and naming requirements have changed.
+
+  
 
 # Compatability
 
+  
+
 This crate currently only supports the normal DLL PE format. As such, .NET DLLs are not supported.
 
-# Creating a New Library
+  
 
-To create a new library, navigate to a good directory close to the target DLL, and then run the `rustdllproxy` command in your terminal. Follow the prompts for the DLL path, new crate directory, and the new name of your crate.
+# Utility
 
-> IMPORTANT! Select the location of your crate wisely. It cannot be easily moved after creation. If you do, please update the path of the .def file in the linker options.
+  
 
-Now the library crate should have been created.
+This crate serves two main purposes:
 
-# Hooking Into Functions
+  
 
-Now that you are in the new library, you should see some boilerplate generated in `lib.rs`. This is required for forwarding exports from the old DLL, so keep it untouched unless it is hooked.
+- Proxying a single DLL in order to modify or better understand its behavior.
 
-In order to hook a function, you must replace the `no_mangle` macro with any of the following:
+  
 
-- prehook
-- posthook
-- fullhook
+- Collecting several DLLs into one to modify behavior, which can then be used along side a custom application or technique to use or understand several DLLs as one.
 
-in the format `#[prehook("dll_being_hooked", "function_name")]`.
+  
 
-> Please also note, that the name of the function should be untouched. If it is changed, the linker will have problems when generating exports.
+**Current Limitations**
 
-Once you have used the macro, you must fill out the signature of the function. This is a current limitation that will be fixed soon, but for hooking currently you must know the function's signature. This can be determined with a multitude of different tools and techniques. If you are using this tool, I assume that you are already using some sort of disassembler or decompiler to look at said DLL.
+  
 
-Finally, you must visit the .def file and remove the forwarding behavior such that just the function name being exported remains (ex.)
+- Currently, the crate only understands exports from the standard PE DLL format. As such, .NET DLLs are not compatible.
 
-`do_multi_add = yourdll_.do_multi_add @1` turns into `do_multi_add @1`, assuming you are hooking do_multi_add.
+  
 
-Finally, run `cargo build --release` to build your DLL.
+- When hooking functions with custom code, the function signature must be known. This can easily be found with a multitude of disassemblers and reverse engineering tools, like Ghidra.
 
-> It is important that you change the .def file before compilation. If you compile before changing the .def file, it will obviously not be hooked. If you change the .def file and try again, it will still not be hooked. Rather, cargo will return the cached build. This behavior is due to cargo not searching for differences in the .def file. Save yourself the headache and do it right the first time.
+  
+
+# Creating a New Crate
+
+Rustdllproxy generates a `cdylib` crate that can be compiled into a DLL. See `rustdllproxy --help` for more info on using the command.
+
+> Note, the `-p` argument can be used several times to unify several different DLLs into one.
+
+Before creating your crate, consider how you want the proxy DLL to interact with the original(s). A typical pattern is to append and underscore to the name of the original. ***THIS MUST BE DONE BEFORE GENERATING THE CRATE.*** The generated .def file will reference this name for forwarding behavior. This of course can be modified later, but current Cargo behaviour makes this a pain in the ass.
+
+> Cargo will not rebuild if you change a .def file. Either force a rebuild or change something within lib.rs to force Cargo to take account of the updated .def
+
+# Writing Hooks
+
+The macro library current supports 3 main hooks: prehook, posthook, and fullhook.
+
+In order to invoke a hook, you must do the following:
+
+1. Replace the `#[no_mangle]` directive with the hook macro, IE `#[prehook("dllbeingproxied.dll", "function_name")]`
+2. Fill out the function signature. Remember, you can delcare inputs as `mut` to modify them in the function.
+3. Go to the generated .def file, and remove the forwarding behavior. `function_name = dllbeingproxied.function_name @2` now becomes `function_name @2`. This tells the compiler to export the new symbol instead of using the default function.
+4. All set!
+
+> Remember, if you build and forget to update the .def, force Cargo to do a full rebuild. Cargo will not notice the changed .def file and will serve you a cached build instead.
 
 ## prehook
 
-When prehooking you can modify the values of the input arguments. When you create the function signature, you may define arguments as mutable as you normally would in Rust, and changing these arguments works as expected.
+Prehook is the simplest hook. Code you write in a prehook will execute before the normal function. In this time you are able to add functionality or modify input variables.
 
 ## posthook
 
-When writing a posthook, if your function is returning something, you can modify the value with the magic `ret` variable. Changing the value of ret will change what the function returns.
+Posthook allows for adding functionality after the orginal function is executed. This allows you to both view and edit the return value with the magic `ret` variable. If the function returns a value, you can directly write to this variable, IE `ret = 4` to change the return value.
+
+> Note, the macro has already defined ret as mutable. Also, you are not required to reference it if you don't need too.
 
 ## fullhook
 
-A fullhook is more advanced but gives you a deeper level of control over the hook. A fullhook relies on you to call the original function manually using the magic `func` function. This function must have the original arguments passed to it as well. If your function has a return value, it must also be stored and then returned manually at the end of your hook.
+Full hook allows for full control of what occurs both before and after the function, but in turn adds a small amount of complexity.
 
-# Using the DLL
+When writing a full hook, you must manually manage the return value and the calling of the function via the magic `func()` function, which you must call with the correct arguments in order to signal the execution of the function being proxied.
 
-The new DLL generated must be placed in the same directory as the target DLL. Along with that, the target DLL's name must be appended with an _. For example, `dlltest.dll` becomes `dlltest_.dll`, and you name the proxy DLL to `dlltest.dll`. This is to take advantage of the DLL search order.
+Additionally, if `func()` has a return value, you must also ensure that the hook stores and returns this value at the end of the hook's execution.
 
-There are obviously cases where the approach is slightly different, I assume you know what you are doing for your specific case.
+Example:
+
+```rust
+#[fullhook("dllbeingproxied.dll, "do_multi_add")]
+fn do_multi_add(mut a: i32, mut b: i32, mut c: i32) -> i32 {
+	// Do some stuff to a, b, c, or add more code
+
+	let mut return_value: i32 = func(a, b, c);
+
+	// Do some stuff to the return value or add more code
+
+	// Return the value
+	return_value
+}
+```
+
+# A Typical Workflow
+
+Say I want to modify a DLL used in common office software. I plan on using search order hijacking directly in the directory of the DLL, lets call it `office.dll`.
+
+I would elect to rename `office.dll` to `office_.dll`. Then, run `rustdllproxy` with the appropriate arguments.
+
+In the generated crate, I would like the prehook the `open_window` function, which I know following some reverse engineering has no arguments or return type. I would write the following:
+
+```rust
+#[prehook("office_.dll, "open_window")]
+fn open_window() {
+	// Write arbitrary code here...
+}
+```
+
+Following, edit the .def file from `open_window = office_.open_window @3` to `open_window @3`.
+
+Build as release, and as described earlier, rename the new DLL as if it was the original `office.dll` and move it into the directory.
+
+
+
