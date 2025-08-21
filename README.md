@@ -98,7 +98,7 @@ Additionally, if `func()` has a return value, you must also ensure that the hook
 Example:
 
 ```rust
-#[fullhook("dllbeingproxied.dll, "do_multi_add")]
+#[fullhook("dllbeingproxied.dll", "do_multi_add")]
 fn do_multi_add(mut a: i32, mut b: i32, mut c: i32) -> i32 {
 	// Do some stuff to a, b, c, or add more code
 
@@ -120,7 +120,7 @@ I would elect to rename `office.dll` to `office_.dll`. Then, run `rustdllproxy` 
 In the generated crate, I would like the prehook the `open_window` function, which I know following some reverse engineering has no arguments or return type. I would write the following:
 
 ```rust
-#[prehook("office_.dll, "open_window")]
+#[prehook("office_.dll", "open_window")]
 fn open_window() {
 	// Write arbitrary code here...
 }
