@@ -60,7 +60,7 @@ Rustdllproxy generates a `cdylib` crate that can be compiled into a DLL. See `ru
 
 > Note, the `-p` argument can be used several times to unify several different DLLs into one.
 
-Before creating your crate, consider how you want the proxy DLL to interact with the original(s). A typical pattern is to append and underscore to the name of the original. ***THIS MUST BE DONE BEFORE GENERATING THE CRATE.*** The generated .def file will reference this name for forwarding behavior. This of course can be modified later, but current Cargo behaviour makes this a pain in the ass.
+Before creating your crate, consider how you want the proxy DLL to interact with the original(s). A typical pattern is to append and underscore to the name of the original. ***THIS MUST BE DONE BEFORE GENERATING THE CRATE.*** The generated .def file will reference this name for forwarding behavior. This of course can be modified later, but current Cargo behavior makes this a pain in the ass.
 
 > Cargo will not rebuild if you change a .def file. Either force a rebuild or change something within lib.rs to force Cargo to take account of the updated .def
 
@@ -71,7 +71,7 @@ The macro library current supports 3 main hooks: prehook, posthook, and fullhook
 In order to invoke a hook, you must do the following:
 
 1. Replace the `#[no_mangle]` directive with the hook macro, IE `#[prehook("dllbeingproxied.dll", "function_name")]`
-2. Fill out the function signature. Remember, you can delcare inputs as `mut` to modify them in the function.
+2. Fill out the function signature. Remember, you can declare inputs as `mut` to modify them in the function.
 3. Go to the generated .def file, and remove the forwarding behavior. `function_name = dllbeingproxied.function_name @2` now becomes `function_name @2`. This tells the compiler to export the new symbol instead of using the default function.
 4. All set!
 
@@ -83,7 +83,7 @@ Prehook is the simplest hook. Code you write in a prehook will execute before th
 
 ## posthook
 
-Posthook allows for adding functionality after the orginal function is executed. This allows you to both view and edit the return value with the magic `ret` variable. If the function returns a value, you can directly write to this variable, IE `ret = 4` to change the return value.
+Posthook allows for adding functionality after the original function is executed. This allows you to both view and edit the return value with the magic `ret` variable. If the function returns a value, you can directly write to this variable, IE `ret = 4` to change the return value.
 
 > Note, the macro has already defined ret as mutable. Also, you are not required to reference it if you don't need too.
 
@@ -130,5 +130,10 @@ Following, edit the .def file from `open_window = office_.open_window @3` to `op
 
 Build as release, and as described earlier, rename the new DLL as if it was the original `office.dll` and move it into the directory.
 
+# Considerations When Bundling
 
+To clear up some confusion, proxying several DLLs together is almost never useful for process modification, it's only useful for reverse engineering and building custom software.
+
+Note that when several DLLs are bundled together, the *ordinals* that functions are exported at may change due to their "spot" being taken by another DLL's functions.
+This should never really be a problem, as most modern software uses export names anyways for compatability and readability in their code.
 
