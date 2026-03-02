@@ -78,6 +78,8 @@ The macro library supports 3 main hook types: `prehook`, `posthook`, and `fullho
 
 ### Hook Types
 
+> In this section, target.dll is commonly used. Remember in most cases this would be target\_.dll
+
 #### `prehook`
 
 Executes code **before** the original function. Allows you to add functionality or modify input variables.
@@ -141,7 +143,7 @@ mv office.dll office_.dll
 ### Step 2: Generate Proxy Crate
 
 ```bash
-rustdllproxy -p office_.dll -o office_proxy
+rustdllproxy -p office_.dll -n office_proxy
 ```
 
 ### Step 3: Implement Hooks
