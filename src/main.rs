@@ -2,7 +2,7 @@ pub mod parsedllexports;
 use std::collections::HashMap;
 use std::error::Error;
 
-use clap::Parser;
+use clap::{Parser, ValueEnum};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let cli = CLI::parse();
@@ -27,7 +27,13 @@ fn main() -> Result<(), Box<dyn Error>> {
         "winapi = { version = \"0.3.9\", features = [\"libloaderapi\", \"minwindef\"] }",
     ];
 
-    create_rust_lib_crate(new_dir, &new_name, dlls_and_exports, Some(dependencies))?;
+    create_rust_lib_crate(
+        new_dir,
+        &new_name,
+        dlls_and_exports,
+        Some(dependencies),
+        &cli.arch,
+    )?;
 
     Ok(())
 }
@@ -41,6 +47,7 @@ pub fn create_rust_lib_crate<P: AsRef<Path>>(
     crate_name: &str,
     dlls_and_exports: HashMap<String, Vec<String>>,
     dependencies: Option<Vec<&str>>,
+    arch: &Arch,
 ) -> io::Result<PathBuf> {
     // Create src directory
     let crate_dir = dir_path.as_ref().join(crate_name);
@@ -91,7 +98,10 @@ pub fn create_rust_lib_crate<P: AsRef<Path>>(
 
     // Fill out config.toml and lib.rs
     writeln!(config_file, "[build]")?;
-    writeln!(config_file, "target = \"x86_64-pc-windows-msvc\"")?;
+    match arch {
+        Arch::X64 => writeln!(config_file, "target = \"x86_64-pc-windows-msvc\"")?,
+        Arch::X86 => writeln!(config_file, "target = \"i686-pc-windows-msvc\"")?,
+    }
 
     writeln!(def_file, "LIBRARY {}", crate_name)?;
     writeln!(def_file, "EXPORTS")?;
@@ -161,4 +171,19 @@ struct CLI {
 
     #[arg(short = 'n', long = "name", help = "Name of the new crate")]
     new_name: String,
+
+    #[arg(
+        short = 'a',
+        long = "arch",
+        value_enum,
+        default_value_t = Arch::X64,
+        help = "Target Windows architecture"
+    )]
+    arch: Arch,
+}
+
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+pub enum Arch {
+    X64,
+    X86,
 }
