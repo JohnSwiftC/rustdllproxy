@@ -152,7 +152,7 @@ pub fn create_rust_lib_crate<P: AsRef<Path>>(
 }
 
 #[derive(Parser)]
-#[command(version = "2.0.0", about = "A simple command-line utility for generating proxy DLLs in Rust", long_about = None)]
+#[command(version = "2.1.0", about = "A simple command-line utility for generating proxy DLLs in Rust", long_about = None)]
 struct CLI {
     #[arg(
         short = 'p',
