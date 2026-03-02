@@ -143,7 +143,7 @@ pub fn create_rust_lib_crate<P: AsRef<Path>>(
     {
         writeln!(
             config_file,
-            "rustflags = [\"-C\", \"link-args=/DEF:\\\"{}\\\"\"]",
+            "rustflags = [\"-C\", 'link-arg=/DEF:{}']",
             full_def_path.replace("\\", "/")
         )?;
     }
