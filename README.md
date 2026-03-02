@@ -16,12 +16,6 @@ A Rust crate utility to easily generate and develop proxy DLLs for Windows appli
 cargo install rustdllproxy
 ```
 
-## Video Tutorial
-
-There's a video tutorial available [here](https://youtu.be/f7WVPpsBXNA).
-
-> **Note:** This video is now outdated. The process of writing functions remains the same, however the crate creation process and naming requirements have changed.
-
 ## Compatibility
 
 This crate currently only supports the standard DLL PE format. **.NET DLLs are not supported.**
@@ -64,6 +58,7 @@ The macro library supports 3 main hook types: `prehook`, `posthook`, and `fullho
 ### Hook Implementation Steps
 
 1. Replace the `#[no_mangle]` directive with the hook macro:
+
    ```rust
    #[prehook("dllbeingproxied.dll", "function_name")]
    ```
@@ -71,6 +66,7 @@ The macro library supports 3 main hook types: `prehook`, `posthook`, and `fullho
 2. Fill out the function signature (declare inputs as `mut` to modify them)
 
 3. Update the generated `.def` file by removing forwarding behavior:
+
    ```diff
    - function_name = dllbeingproxied.function_name @2
    + function_name @2
@@ -83,6 +79,7 @@ The macro library supports 3 main hook types: `prehook`, `posthook`, and `fullho
 ### Hook Types
 
 #### `prehook`
+
 Executes code **before** the original function. Allows you to add functionality or modify input variables.
 
 ```rust
@@ -94,6 +91,7 @@ fn my_function(mut param1: i32, mut param2: &str) {
 ```
 
 #### `posthook`
+
 Executes code **after** the original function. View and edit the return value using the magic `ret` variable.
 
 ```rust
@@ -108,6 +106,7 @@ fn calculate(input: i32) -> i32 {
 > **Note:** The `ret` variable is automatically defined as mutable. You don't need to reference it if not needed.
 
 #### `fullhook`
+
 Provides **complete control** over function execution. Manually manage the return value and function calling.
 
 ```rust
@@ -116,13 +115,13 @@ fn do_multi_add(mut a: i32, mut b: i32, mut c: i32) -> i32 {
     // Pre-processing
     a += 10;
     b += 20;
-    
+
     // Call original function with magic func()
     let mut return_value: i32 = func(a, b, c);
-    
+
     // Post-processing
     return_value *= 2;
-    
+
     // Must explicitly return the value
     return_value
 }
@@ -133,17 +132,20 @@ fn do_multi_add(mut a: i32, mut b: i32, mut c: i32) -> i32 {
 Let's say you want to modify `office.dll` used in office software via DLL search order hijacking:
 
 ### Step 1: Prepare the Original DLL
+
 ```bash
 # Rename the original DLL
 mv office.dll office_.dll
 ```
 
 ### Step 2: Generate Proxy Crate
+
 ```bash
 rustdllproxy -p office_.dll -o office_proxy
 ```
 
 ### Step 3: Implement Hooks
+
 ```rust
 #[prehook("office_.dll", "open_window")]
 fn open_window() {
@@ -153,12 +155,14 @@ fn open_window() {
 ```
 
 ### Step 4: Update .def File
+
 ```diff
 - open_window = office_.open_window @3
 + open_window @3
 ```
 
 ### Step 5: Build and Deploy
+
 ```bash
 cargo build --release
 # Rename the built DLL back to office.dll
@@ -170,6 +174,7 @@ cargo build --release
 > **Important:** Proxying several DLLs together is typically useful for **reverse engineering and custom software development**, not process modification.
 
 When bundling multiple DLLs:
+
 - Function **ordinals may change** due to export ordering
 - This is rarely problematic since modern software uses export names for compatibility
 - Primarily useful for analysis and custom application development
