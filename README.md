@@ -43,6 +43,8 @@ rustdllproxy --help  # See all available options
 
 > **Tip:** Use the `-p` argument multiple times to unify several different DLLs into one proxy.
 
+> **Tip:** The `-a` flag can be used to optionally compile for 32 bit.
+
 ### Important: Proxy Strategy
 
 Before creating your crate, decide how the proxy DLL will interact with the original(s). A typical pattern is to **append an underscore** to the original DLL name.
