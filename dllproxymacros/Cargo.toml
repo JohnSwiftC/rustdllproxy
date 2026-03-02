@@ -1,6 +1,6 @@
 [package]
 name = "dllproxymacros"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2024"
 description = "Set of macros intended to ease DLL proxying through the LoadLibrary Windows API."
 readme = "./README.md"

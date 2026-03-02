@@ -1,3 +1,5 @@
+> Moved to github.com/JohnSwiftC/rustdllproxy
+
 # dllproxymacros
 
 A series of macros to be used in a seperate project to easily generate Rust proxy DLLs in more modern versions of the language.
