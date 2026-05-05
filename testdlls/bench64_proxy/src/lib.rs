@@ -8,5 +8,13 @@ fn add(a: u64, b: u64) -> u64 {
 }
 #[no_mangle] //bench64_.dll
 fn add_then_mult() {}
-#[no_mangle] //bench64_.dll
-fn mult() {}
+#[fullhook("bench64_.dll", "mult")] //bench64_.dll
+fn mult(a: u64, b: u64) -> u64 {
+    println!("Hello mult!");
+
+    let mut return_value = func(a, b);
+
+    return_value = 0;
+
+    return_value
+}
