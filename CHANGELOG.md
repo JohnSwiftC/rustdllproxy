@@ -5,9 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [3.0.0] — Unreleased
+## [3.0.0] — 2026-05-05
 
 ### Added
+
 - `build` subcommand. Run `rustdllproxy build` from the proxy crate directory
   to parse `src/lib.rs`, regenerate the `.def` file so hooked functions stop
   forwarding and unhooked functions still do, and then invoke `cargo build`.
@@ -23,11 +24,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   not fingerprint `.def` files on its own.)
 
 ### Changed
+
 - **Breaking:** the CLI now uses subcommands. The previous flat invocation
   `rustdllproxy -p <dll> -n <name>` is now `rustdllproxy new -p <dll> -n <name>`.
   The `new` subcommand's flags (`-p`, `-o`, `-n`, `-a`) are otherwise unchanged.
 
 ### Migration from 2.x
+
 - Replace `rustdllproxy <args>` with `rustdllproxy new <args>`.
 - After implementing hooks, run `rustdllproxy build` from the proxy crate root
   instead of hand-editing the `.def` file and running `cargo build --release`.
