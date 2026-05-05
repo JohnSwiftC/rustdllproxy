@@ -33,15 +33,28 @@ This crate serves two main purposes:
 - When hooking functions with custom code, **the function signature must be known**
   - This can be found using disassemblers and reverse engineering tools like [Ghidra](https://ghidra-sre.org/)
 
-## Creating a New Crate
+## Commands
 
-Rustdllproxy generates a `cdylib` crate that compiles into a DLL.
+Rustdllproxy ships two subcommands:
+
+| Command | Purpose |
+| --- | --- |
+| `rustdllproxy new`   | Generate a new proxy `cdylib` crate from one or more existing DLLs. |
+| `rustdllproxy build` | Sync the `.def` file with `src/lib.rs` and build the crate. |
 
 ```bash
-rustdllproxy --help  # See all available options
+rustdllproxy --help        # top-level help
+rustdllproxy new --help    # generation flags
+rustdllproxy build --help  # build flags
 ```
 
-> **Tip:** Use the `-p` argument multiple times to unify several different DLLs into one proxy.
+## Creating a New Crate
+
+```bash
+rustdllproxy new -p path/to/target.dll -n my_proxy
+```
+
+> **Tip:** Use `-p` multiple times to unify several DLLs into one proxy.
 
 > **Tip:** The `-a` flag can be used to optionally compile for 32 bit.
 
@@ -51,32 +64,23 @@ Before creating your crate, decide how the proxy DLL will interact with the orig
 
 **⚠️ THIS MUST BE DONE BEFORE GENERATING THE CRATE** - the generated `.def` file will reference this name for forwarding behavior.
 
-> **Cargo Build Issue:** Cargo will not rebuild if you change a `.def` file. Either force a rebuild or modify `lib.rs` to trigger recompilation.
-
 ## Writing Hooks
 
 The macro library supports 3 main hook types: `prehook`, `posthook`, and `fullhook`.
 
 ### Hook Implementation Steps
 
-1. Replace the `#[no_mangle]` directive with the hook macro:
+1. Replace the `#[no_mangle]` directive with the hook macro (leave the `//<dllname>.dll` trailing comment in place — `rustdllproxy build` uses it to recover the original DLL name):
 
    ```rust
-   #[prehook("dllbeingproxied.dll", "function_name")]
+   #[prehook("dllbeingproxied.dll", "function_name")] //dllbeingproxied.dll
    ```
 
 2. Fill out the function signature (declare inputs as `mut` to modify them)
 
-3. Update the generated `.def` file by removing forwarding behavior:
+3. Build with `rustdllproxy build`. The tool will rewrite the `.def` file so that hooked functions no longer forward and unhooked functions still do, then invoke `cargo build --profile release` for you.
 
-   ```diff
-   - function_name = dllbeingproxied.function_name @2
-   + function_name @2
-   ```
-
-4. Build and deploy!
-
-> **Remember:** Force a full Cargo rebuild if you forget to update the `.def` file, as Cargo won't detect the change.
+> Previously, step 3 required hand-editing the `.def` file (`function_name = dll.function_name @N` → `function_name @N`) and then forcing a Cargo rebuild because Cargo doesn't fingerprint `.def` changes. The `build` subcommand handles both.
 
 ### Hook Types
 
@@ -87,7 +91,7 @@ The macro library supports 3 main hook types: `prehook`, `posthook`, and `fullho
 Executes code **before** the original function. Allows you to add functionality or modify input variables.
 
 ```rust
-#[prehook("target.dll", "my_function")]
+#[prehook("target.dll", "my_function")] //target.dll
 fn my_function(mut param1: i32, mut param2: &str) {
     // Your code here - executes before original function
     param1 *= 2;  // Modify parameters if needed
@@ -99,7 +103,7 @@ fn my_function(mut param1: i32, mut param2: &str) {
 Executes code **after** the original function. View and edit the return value using the magic `ret` variable.
 
 ```rust
-#[posthook("target.dll", "calculate")]
+#[posthook("target.dll", "calculate")] //target.dll
 fn calculate(input: i32) -> i32 {
     // Original function executes first
     // Then your code runs with access to 'ret'
@@ -114,7 +118,7 @@ fn calculate(input: i32) -> i32 {
 Provides **complete control** over function execution. Manually manage the return value and function calling.
 
 ```rust
-#[fullhook("target.dll", "do_multi_add")]
+#[fullhook("target.dll", "do_multi_add")] //target.dll
 fn do_multi_add(mut a: i32, mut b: i32, mut c: i32) -> i32 {
     // Pre-processing
     a += 10;
@@ -131,6 +135,37 @@ fn do_multi_add(mut a: i32, mut b: i32, mut c: i32) -> i32 {
 }
 ```
 
+## Building the Crate
+
+Run from the proxy crate directory (or pass it as the first argument):
+
+```bash
+rustdllproxy build [PATH] [--profile <name>] [--no-build] [-- <extra cargo args>]
+```
+
+| Flag | Default | Effect |
+| --- | --- | --- |
+| `PATH` | `.` | Path to the proxy crate root. |
+| `--profile <name>` | `release` | Cargo build profile (`release`, `dev`, custom). |
+| `--no-build` | off | Regenerate the `.def` file but skip `cargo build`. |
+| `-- <args>` | — | Forwarded verbatim to `cargo build`. |
+
+### How It Works
+
+1. Reads `[package].name` from `Cargo.toml` to locate `<name>.def`.
+2. Walks `src/lib.rs` to classify every exported function as either **hooked** (`#[prehook]` / `#[posthook]` / `#[fullhook]`) or **forwarded** (`#[no_mangle]`).
+3. For each function, the original DLL name is recovered from, in order:
+   - the first string literal of the hook macro (hooked functions only),
+   - the trailing `//<dllname>.dll` comment on the attribute line,
+   - the existing forwarding entry already in the `.def` file.
+4. Rewrites `<name>.def` so hooked functions read `name @N` and forwarded functions read `name = origdll.name @N`. Existing ordinals are preserved.
+5. Bumps `src/lib.rs`'s mtime to force a relink (Cargo doesn't fingerprint `.def` changes), then invokes `cargo build`.
+
+### Caveats
+
+- The `.def` file is **fully regenerated** on every run — manual edits to it (extra directives, custom ordinals) will be overwritten.
+- If an `#[no_mangle]` function loses both its `//<dllname>.dll` comment **and** its forwarding entry in the `.def` file, the build aborts with an error explaining how to restore one of them.
+
 ## Example Workflow
 
 Let's say you want to modify `office.dll` used in office software via DLL search order hijacking:
@@ -145,33 +180,31 @@ mv office.dll office_.dll
 ### Step 2: Generate Proxy Crate
 
 ```bash
-rustdllproxy -p office_.dll -n office_proxy
+rustdllproxy new -p office_.dll -n office_proxy
 ```
 
 ### Step 3: Implement Hooks
 
+Leave the `//office_.dll` trailing comment that the generator emitted — the `build` step reads it.
+
 ```rust
-#[prehook("office_.dll", "open_window")]
+#[prehook("office_.dll", "open_window")] //office_.dll
 fn open_window() {
     // Your custom code here...
     println!("Window is about to open!");
 }
 ```
 
-### Step 4: Update .def File
-
-```diff
-- open_window = office_.open_window @3
-+ open_window @3
-```
-
-### Step 5: Build and Deploy
+### Step 4: Build and Deploy
 
 ```bash
-cargo build --release
+cd office_proxy
+rustdllproxy build
 # Rename the built DLL back to office.dll
 # Place in the target directory
 ```
+
+`rustdllproxy build` reconciles the `.def` file with `src/lib.rs`, then runs `cargo build --profile release`. The crate is force-recompiled on every invocation so the artifact always reflects the current `.def`.
 
 ## DLL Bundling Considerations
 
