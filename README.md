@@ -37,10 +37,10 @@ This crate serves two main purposes:
 
 Rustdllproxy ships two subcommands:
 
-| Command | Purpose |
-| --- | --- |
+| Command              | Purpose                                                             |
+| -------------------- | ------------------------------------------------------------------- |
 | `rustdllproxy new`   | Generate a new proxy `cdylib` crate from one or more existing DLLs. |
-| `rustdllproxy build` | Sync the `.def` file with `src/lib.rs` and build the crate. |
+| `rustdllproxy build` | Sync the `.def` file with `src/lib.rs` and build the crate.         |
 
 ```bash
 rustdllproxy --help        # top-level help
@@ -78,7 +78,7 @@ The macro library supports 3 main hook types: `prehook`, `posthook`, and `fullho
 
 2. Fill out the function signature (declare inputs as `mut` to modify them)
 
-3. Build with `rustdllproxy build`. The tool will rewrite the `.def` file so that hooked functions no longer forward and unhooked functions still do, then invoke `cargo build --profile release` for you.
+3. Build with `rustdllproxy build`.
 
 > Previously, step 3 required hand-editing the `.def` file (`function_name = dll.function_name @N` → `function_name @N`) and then forcing a Cargo rebuild because Cargo doesn't fingerprint `.def` changes. The `build` subcommand handles both.
 
@@ -143,12 +143,12 @@ Run from the proxy crate directory (or pass it as the first argument):
 rustdllproxy build [PATH] [--profile <name>] [--no-build] [-- <extra cargo args>]
 ```
 
-| Flag | Default | Effect |
-| --- | --- | --- |
-| `PATH` | `.` | Path to the proxy crate root. |
-| `--profile <name>` | `release` | Cargo build profile (`release`, `dev`, custom). |
-| `--no-build` | off | Regenerate the `.def` file but skip `cargo build`. |
-| `-- <args>` | — | Forwarded verbatim to `cargo build`. |
+| Flag               | Default   | Effect                                             |
+| ------------------ | --------- | -------------------------------------------------- |
+| `PATH`             | `.`       | Path to the proxy crate root.                      |
+| `--profile <name>` | `release` | Cargo build profile (`release`, `dev`, custom).    |
+| `--no-build`       | off       | Regenerate the `.def` file but skip `cargo build`. |
+| `-- <args>`        | —         | Forwarded verbatim to `cargo build`.               |
 
 ### How It Works
 
@@ -203,8 +203,6 @@ rustdllproxy build
 # Rename the built DLL back to office.dll
 # Place in the target directory
 ```
-
-`rustdllproxy build` reconciles the `.def` file with `src/lib.rs`, then runs `cargo build --profile release`. The crate is force-recompiled on every invocation so the artifact always reflects the current `.def`.
 
 ## DLL Bundling Considerations
 
