@@ -1,0 +1,5 @@
+LIBRARY bench64_proxy
+EXPORTS
+    add @1
+    add_then_mult = bench64_.add_then_mult @2
+    mult = bench64_.mult @3

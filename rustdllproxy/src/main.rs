@@ -1,14 +1,27 @@
+pub mod buildcmd;
 pub mod parsedllexports;
+
 use std::collections::HashMap;
 use std::error::Error;
+use std::fs::{self, File};
+use std::io::{self, Write};
+use std::path::{Path, PathBuf};
 
-use clap::{Parser, ValueEnum};
+use clap::{Parser, Subcommand, ValueEnum};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let cli = CLI::parse();
+
+    match cli.command {
+        Commands::New(args) => cmd_new(args),
+        Commands::Build(args) => buildcmd::run(args),
+    }
+}
+
+fn cmd_new(args: NewArgs) -> Result<(), Box<dyn Error>> {
     let mut dlls_and_exports = HashMap::new();
 
-    for dll_path in cli.dll_paths {
+    for dll_path in args.dll_paths {
         let exports = parsedllexports::parse_dll_exports(&dll_path).expect("Bad DLL");
         let dll_name = dll_path
             .file_name()
@@ -19,8 +32,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         );
     }
 
-    let new_dir = cli.new_dir.unwrap_or(".".to_owned());
-    let new_name = cli.new_name;
+    let new_dir = args.new_dir.unwrap_or(".".to_owned());
+    let new_name = args.new_name;
 
     let dependencies = vec![
         "dllproxymacros = \"0.2.0\"",
@@ -32,15 +45,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         &new_name,
         dlls_and_exports,
         Some(dependencies),
-        &cli.arch,
+        &args.arch,
     )?;
 
     Ok(())
 }
-
-use std::fs::{self, File};
-use std::io::{self, Write};
-use std::path::{Path, PathBuf};
 
 pub fn create_rust_lib_crate<P: AsRef<Path>>(
     dir_path: P,
@@ -152,8 +161,22 @@ pub fn create_rust_lib_crate<P: AsRef<Path>>(
 }
 
 #[derive(Parser)]
-#[command(version = "2.1.0", about = "A simple command-line utility for generating proxy DLLs in Rust", long_about = None)]
+#[command(version = "3.0.0", about = "A simple command-line utility for generating proxy DLLs in Rust", long_about = None)]
 struct CLI {
+    #[command(subcommand)]
+    command: Commands,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    /// Generate a new proxy DLL crate from one or more existing DLLs.
+    New(NewArgs),
+    /// Sync the .def file with src/lib.rs and (optionally) build the crate.
+    Build(buildcmd::BuildArgs),
+}
+
+#[derive(clap::Args)]
+struct NewArgs {
     #[arg(
         short = 'p',
         long = "path",
