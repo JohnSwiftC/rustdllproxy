@@ -1,3 +1,3 @@
 [workspace]
-members = ["rustdllproxy", "dllproxymacros"]
+members = ["rustdllproxy", "dllproxymacros", "testdlls/bench64", "testdlls/runner64"]
 resolver = "2"

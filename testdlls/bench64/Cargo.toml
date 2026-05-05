@@ -1,0 +1,10 @@
+[package]
+name = "bench64"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+name = "bench64"
+crate-type = ["cdylib"]
+
+[dependencies]

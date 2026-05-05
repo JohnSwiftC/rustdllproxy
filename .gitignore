@@ -1,1 +1,4 @@
 target/
+testdlls/target
+*.dll
+*.lib
