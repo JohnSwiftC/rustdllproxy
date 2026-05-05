@@ -1,6 +1,6 @@
 [package]
 name = "rustdllproxy"
-readme = "README.md"
+readme = "../README.md"
 version = "3.0.0"
 edition = "2024"
 description = "Crate to ease the development of proxy DLLs in Rust"
