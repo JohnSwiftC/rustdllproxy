@@ -28,8 +28,6 @@ pub struct BuildArgs {
 #[derive(Debug, Clone)]
 struct ProxyFunction {
     name: String,
-    /// Original DLL name (with the .dll suffix), e.g. "bench64_.dll".
-    /// May be `None` if not recoverable from src/lib.rs alone.
     orig_dll: Option<String>,
     hooked: bool,
 }

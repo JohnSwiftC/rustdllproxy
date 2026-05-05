@@ -214,6 +214,10 @@ When bundling multiple DLLs:
 - This is rarely problematic since modern software uses export names for compatibility
 - Primarily useful for analysis and custom application development
 
+## Changelog
+
+Release notes live in [CHANGELOG.md](CHANGELOG.md).
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit issues and pull requests.
