@@ -18,18 +18,10 @@ cargo install rustdllproxy
 
 ## Compatibility
 
-This crate currently only supports the standard DLL PE format. **.NET DLLs are not supported.**
-
-## Use Cases
-
-This crate serves two main purposes:
-
-1. **Single DLL Proxying** - Proxy a single DLL to modify or better understand its behavior
-2. **DLL Consolidation** - Collect several DLLs into one unified proxy, which can be used alongside custom applications or techniques
+This crate currently only supports the standard DLL PE format.
 
 ## Current Limitations
 
-- Only supports exports from the standard PE DLL format (**.NET DLLs are not compatible**)
 - When hooking functions with custom code, **the function signature must be known**
   - This can be found using disassemblers and reverse engineering tools like [Ghidra](https://ghidra-sre.org/)
 
@@ -50,19 +42,18 @@ rustdllproxy build --help  # build flags
 
 ## Creating a New Crate
 
+#### A Quick Note on Strategy
+
+Before generating your crate, decide how you would like your proxy to work. A typical pattern is search order hijacking, where you would first rename your target DLL to something like `target_.dll`, and then use the compiled proxy as `target.dll`. This creates a flow resembling `binary -> target.dll -> target_.dll`
+
+There are multiple paths forward depending on your use case. If however you need to rename the underlying DLL being proxied, update the generated `.def` file accordingly.
+
+---
 ```bash
-rustdllproxy new -p path/to/target.dll -n my_proxy
+rustdllproxy new -p path/to/target_.dll -n my_proxy
 ```
 
-> **Tip:** Use `-p` multiple times to unify several DLLs into one proxy.
-
-> **Tip:** The `-a` flag can be used to optionally compile for 32 bit.
-
-### Important: Proxy Strategy
-
-Before creating your crate, decide how the proxy DLL will interact with the original(s). A typical pattern is to **append an underscore** to the original DLL name.
-
-**⚠️ THIS MUST BE DONE BEFORE GENERATING THE CRATE** - the generated `.def` file will reference this name for forwarding behavior.
+> **Tip:** rustdllproxy is built as a CLI with clap. Run rustdllproxy --help to see all options and flags.
 
 ## Writing Hooks
 
@@ -70,7 +61,7 @@ The macro library supports 3 main hook types: `prehook`, `posthook`, and `fullho
 
 ### Hook Implementation Steps
 
-1. Replace the `#[no_mangle]` directive with the hook macro (leave the `//<dllname>.dll` trailing comment in place — `rustdllproxy build` uses it to recover the original DLL name):
+1. Replace the `#[no_mangle]` directive with the hook macro (leave the `//<dllname>.dll` trailing comment in place)
 
    ```rust
    #[prehook("dllbeingproxied.dll", "function_name")] //dllbeingproxied.dll
@@ -80,11 +71,7 @@ The macro library supports 3 main hook types: `prehook`, `posthook`, and `fullho
 
 3. Build with `rustdllproxy build`.
 
-> Previously, step 3 required hand-editing the `.def` file (`function_name = dll.function_name @N` → `function_name @N`) and then forcing a Cargo rebuild because Cargo doesn't fingerprint `.def` changes. The `build` subcommand handles both.
-
 ### Hook Types
-
-> In this section, target.dll is commonly used. Remember in most cases this would be target\_.dll
 
 #### `prehook`
 
@@ -150,21 +137,12 @@ rustdllproxy build [PATH] [--profile <name>] [--no-build] [-- <extra cargo args>
 | `--no-build`       | off       | Regenerate the `.def` file but skip `cargo build`. |
 | `-- <args>`        | —         | Forwarded verbatim to `cargo build`.               |
 
-### How It Works
 
-1. Reads `[package].name` from `Cargo.toml` to locate `<name>.def`.
-2. Walks `src/lib.rs` to classify every exported function as either **hooked** (`#[prehook]` / `#[posthook]` / `#[fullhook]`) or **forwarded** (`#[no_mangle]`).
-3. For each function, the original DLL name is recovered from, in order:
-   - the first string literal of the hook macro (hooked functions only),
-   - the trailing `//<dllname>.dll` comment on the attribute line,
-   - the existing forwarding entry already in the `.def` file.
-4. Rewrites `<name>.def` so hooked functions read `name @N` and forwarded functions read `name = origdll.name @N`. Existing ordinals are preserved.
-5. Bumps `src/lib.rs`'s mtime to force a relink (Cargo doesn't fingerprint `.def` changes), then invokes `cargo build`.
 
 ### Caveats
 
-- The `.def` file is **fully regenerated** on every run — manual edits to it (extra directives, custom ordinals) will be overwritten.
-- If an `#[no_mangle]` function loses both its `//<dllname>.dll` comment **and** its forwarding entry in the `.def` file, the build aborts with an error explaining how to restore one of them.
+- The `.def` file is **fully regenerated** on every build, manual changes will be overwritten. If you need to make manual changes against how rustdllproxy builds, cargo can be used to accomplish this.
+- The build system relies on generated comments, .def exports, and hook names to retrieve the name of the underlying DLL before building. If there is not enough information, and error will be thrown to explain how this can be recovered.
 
 ## Example Workflow
 
@@ -185,8 +163,6 @@ rustdllproxy new -p office_.dll -n office_proxy
 
 ### Step 3: Implement Hooks
 
-Leave the `//office_.dll` trailing comment that the generator emitted — the `build` step reads it.
-
 ```rust
 #[prehook("office_.dll", "open_window")] //office_.dll
 fn open_window() {
@@ -200,13 +176,12 @@ fn open_window() {
 ```bash
 cd office_proxy
 rustdllproxy build
-# Rename the built DLL back to office.dll
-# Place in the target directory
 ```
+> Build files are located under `/target`
 
 ## DLL Bundling Considerations
 
-> **Important:** Proxying several DLLs together is typically useful for **reverse engineering and custom software development**, not process modification.
+It is possible to proxy several target DLLs with a single crate. This feature is rarely used and comes with some important caveats.
 
 When bundling multiple DLLs:
 
