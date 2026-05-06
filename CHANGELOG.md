@@ -5,7 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [3.0.0] — 2026-05-05
+## 3.0.1 - 2026-05-06
+
+### Changed
+
+Documentation in the README is now more concise and helpful.
+
+## [3.0.0] - 2026-05-05
 
 ### Added
 
@@ -35,5 +41,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - After implementing hooks, run `rustdllproxy build` from the proxy crate root
   instead of hand-editing the `.def` file and running `cargo build --release`.
 - Keep the `//<dllname>.dll` trailing comment that `new` emits next to each
-  `#[no_mangle]` — `build` reads it to recover the original DLL name for
+  `#[no_mangle]`, `build` reads it to recover the original DLL name for
   unhooked functions.
