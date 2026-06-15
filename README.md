@@ -1,9 +1,9 @@
 # rustdllproxy
 
 <div align="center">
-    <img src="https://img.shields.io/badge/rust-%23000000.svg?style=for-the-badge&logo=rust&logoColor=white"></img>
-    <img src="https://img.shields.io/crates/v/rustdllproxy?style=for-the-badge"></img>
-    <img src="https://img.shields.io/crates/d/rustdllproxy?style=for-the-badge"></img>
+    <img src="https://img.shields.io/badge/rust-%23000000.svg?logo=rust&logoColor=white"></img>
+    <img src="https://badgen.net/crates/d/rustdllproxy"></img>
+    <img src="https://badgen.net/crates/v/rustdllproxy"></img>
 </div>
 <br>
 <div align="center">
